@@ -185,7 +185,9 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - **No `version:` on `CommandConfiguration`** — intentionally omitted. ArgumentParser leaks a root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review status --version`).
 - Version is stored as `static let appVersion` in `ASCClient.swift`.
 - `asc-client version` subcommand prints just the version number. `--version` and `-v` are intercepted in `main()` before ArgumentParser and produce the same output.
-- `install-completions` stamps `# asc-client vX.Y.Z` into completion scripts (after `#compdef` line for zsh) so `checkCompletionsVersion()` can detect outdated completions.
+- `install-completions` stamps `# asc-client vX.Y.Z` into completion scripts (after `#compdef` line for zsh) and `install-skill` stamps `<!-- asc-client vX.Y.Z -->` into the installed skill file.
+- `checkForUpdates()` (non-interactive, API commands) and `checkForUpdatesInteractively()` (bare invocation) detect outdated completions and/or skill, offering a single Y/n prompt or NOTE line.
+- Both `install-skill` and the npx installer (`npx asc-client-skill`) fetch `SKILL.md` from GitHub — the skill content is NOT embedded in the binary. `skills/asc-client/SKILL.md` in the repo is the single source of truth.
 
 ### Shell completions (`install-completions`)
 - ArgumentParser's generated completion scripts need post-processing:
