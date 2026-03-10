@@ -91,7 +91,7 @@ asc-client apps build attach <bundle-id> [--version X]             # Interactive
 asc-client apps build attach-latest <bundle-id> [--version X]     # Attach the most recent build
 asc-client apps build detach <bundle-id> [--version X]            # Remove the attached build
 asc-client apps phased-release <bundle-id> [--version X]          # View/manage phased release
-asc-client apps age-rating <bundle-id> [--version X] [--file X]   # View/update age rating
+asc-client apps app-info age-rating <bundle-id> [--version X] [--file X]   # View/update age rating
 asc-client apps routing-coverage <bundle-id> [--file X]           # View/upload routing coverage
 asc-client apps review submit <bundle-id> [--version X]            # Submit version for App Review
 asc-client apps review resolve-issues <bundle-id>                 # Mark rejected items as resolved
@@ -162,8 +162,8 @@ asc-client version                                                # Print versio
 `AppsCommand` uses `CommandGroup` (swift-argument-parser 1.7+) to organize subcommands into sections in `--help` output:
 - **ungrouped** (`subcommands:`): list, info, versions — general browse commands
 - **Version**: create-version, build (attach, attach-latest, detach), phased-release, routing-coverage
-- **Info & Content**: app-info (view, update, import, export), localizations (view, update, import, export), media (upload, download, verify)
-- **Configuration**: age-rating, availability, encryption, eula
+- **Info & Content**: app-info (view, update, import, export, age-rating), localizations (view, update, import, export), media (upload, download, verify)
+- **Configuration**: availability, encryption, eula
 - **Review**: review (preflight, status, submit, resolve-issues, cancel-submission)
 
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
