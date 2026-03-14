@@ -1,4 +1,4 @@
-# asc-client
+# asc
 
 A command-line tool for the App Store Connect API, built with Swift.
 
@@ -7,26 +7,26 @@ A command-line tool for the App Store Connect API, built with Swift.
 ```bash
 swift build                           # Debug build
 swift build -c release                # Release build (slow — AppStoreAPI has ~2500 generated files)
-swift run asc-client <command>        # Run directly
-swift run asc-client --help           # Show all commands
+swift run asc <command>        # Run directly
+swift run asc --help           # Show all commands
 ```
 
 Install globally:
 ```bash
-strip .build/release/asc-client              # Strip debug symbols (~175 MB → ~59 MB)
-cp .build/release/asc-client /usr/local/bin/
+strip .build/release/asc              # Strip debug symbols (~175 MB → ~59 MB)
+cp .build/release/asc /usr/local/bin/
 ```
 
 ## Project Structure
 
 ```
 Package.swift                         # SPM manifest (Swift 6.0, macOS 13+)
-Sources/asc-client/
+Sources/asc/
   ASCClient.swift                     # @main entry, root AsyncParsableCommand, central error handling
-  Config.swift                        # ~/.asc-client/config.json loader, ConfigError
+  Config.swift                        # ~/.asc/config.json loader, ConfigError
   ClientFactory.swift                 # Creates authenticated AppStoreConnectClient
   Formatting.swift                    # Shared helpers: Table.print, ANSI colors, formatFieldName/formatState, formatDate, expandPath
-  Aliases.swift                        # Alias storage (~/.asc-client/aliases.json), resolveAlias()
+  Aliases.swift                        # Alias storage (~/.asc/aliases.json), resolveAlias()
   MediaUpload.swift                   # Media management: upload, download, retry screenshots/previews
   Commands/
     ConfigureCommand.swift            # Interactive credential setup, file permissions
@@ -44,7 +44,7 @@ Sources/asc-client/
     InstallSkillCommand.swift         # Claude Code skill installer (fetches from GitHub)
     RateLimitCommand.swift            # API rate limit status check
 skills/
-  asc-client/SKILL.md                # AI coding skill (single source of truth)
+  asc/SKILL.md                # AI coding skill (single source of truth)
   package.json                        # npm package for npx installer
   bin/install.js                      # npx installer (fetches SKILL.md from GitHub)
 ```
@@ -64,16 +64,16 @@ skills/
 
 ## Authentication
 
-Config file at `~/.asc-client/config.json`:
+Config file at `~/.asc/config.json`:
 ```json
 {
     "keyId": "KEY_ID",
     "issuerId": "ISSUER_ID",
-    "privateKeyPath": "/Users/.../.asc-client/AuthKey_XXXXXXXXXX.p8"
+    "privateKeyPath": "/Users/.../.asc/AuthKey_XXXXXXXXXX.p8"
 }
 ```
 
-- `configure` command copies the .p8 file into `~/.asc-client/` and writes the config
+- `configure` command copies the .p8 file into `~/.asc/` and writes the config
 - File permissions set to 700 (dir) and 600 (files) — owner-only access
 - JWT tokens use ES256 (P256) signing, 20-minute expiry, auto-renewed by asc-swift
 - Private key loaded via `JWT.PrivateKey(contentsOf: URL(fileURLWithPath: path))`
@@ -81,76 +81,76 @@ Config file at `~/.asc-client/config.json`:
 ## Commands
 
 ```
-asc-client configure                                              # Interactive setup
-asc-client apps list                                              # List all apps
-asc-client apps info <bundle-id>                                  # App details
-asc-client apps versions <bundle-id>                              # List App Store versions
-asc-client apps localizations view <bundle-id> [--version X]      # View localizations
-asc-client apps localizations update <bundle-id> [--locale X]     # Update single locale via flags
-asc-client apps localizations import <bundle-id> [--file X]       # Bulk update from JSON file
-asc-client apps localizations export <bundle-id> [--version X]    # Export to JSON file
-asc-client apps review preflight <bundle-id> [--version X]           # Pre-submission checks
-asc-client apps review status <bundle-id> [--version X]             # Review submission status
-asc-client apps create-version <bundle-id> <ver> [--platform X]   # Create new version
-asc-client apps build attach <bundle-id> [--version X]             # Interactively select and attach a build
-asc-client apps build attach-latest <bundle-id> [--version X]     # Attach the most recent build
-asc-client apps build detach <bundle-id> [--version X]            # Remove the attached build
-asc-client apps phased-release <bundle-id> [--version X]          # View/manage phased release
-asc-client apps app-info age-rating <bundle-id> [--version X] [--file X]   # View/update age rating
-asc-client apps routing-coverage <bundle-id> [--file X]           # View/upload routing coverage
-asc-client apps review submit <bundle-id> [--version X]            # Submit version for App Review
-asc-client apps review resolve-issues <bundle-id>                 # Mark rejected items as resolved
-asc-client apps review cancel-submission <bundle-id>              # Cancel an active review submission
-asc-client apps media upload <bundle-id> [--folder X] [--version X] [--replace]  # Upload screenshots/previews
-asc-client apps media download <bundle-id> [--folder X] [--version X]            # Download screenshots/previews
-asc-client apps media verify <bundle-id> [--version X] [--folder X]              # Check media status, retry stuck
-asc-client apps app-info view <bundle-id>                         # View app info, categories, and localizations
-asc-client apps app-info view --list-categories                   # List available category IDs
-asc-client apps app-info update <bundle-id> [--name X] [--subtitle X] [--primary-category X] [-y]  # Update localization fields and/or categories
-asc-client apps app-info import <bundle-id> [--file X] [--verbose] [-y]  # Bulk update localizations from JSON
-asc-client apps app-info export <bundle-id> [--output X]          # Export localizations to JSON
-asc-client apps availability <bundle-id> [--add X] [--remove X]  # View/update territory availability
-asc-client apps encryption <bundle-id> [--create]                 # View/create encryption declarations
-asc-client apps eula <bundle-id> [--file X] [--delete]            # View/manage custom EULA
-asc-client builds list [--bundle-id <id>] [--version X]           # List builds
-asc-client builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
-asc-client builds upload [file]                                   # Upload build via altool
-asc-client builds validate [file]                                 # Validate build via altool
-asc-client builds await-processing <bundle-id> [--build-version X]  # Wait for build to finish processing
-asc-client iap list <bundle-id> [--type X] [--state X]            # List in-app purchases
-asc-client iap info <bundle-id> <product-id>                       # IAP details with localizations
-asc-client iap promoted <bundle-id>                                # List promoted purchases
-asc-client sub groups <bundle-id>                                 # List subscription groups with subscriptions
-asc-client sub list <bundle-id>                                   # Flat list of all subscriptions
-asc-client sub info <bundle-id> <product-id>                      # Subscription details with localizations
-asc-client devices list [--name X] [--platform X] [--status X]   # List registered devices
-asc-client devices info [name-or-udid]                            # Device details (interactive picker if omitted)
-asc-client devices register [--name X] [--udid X] [--platform X] [-y]  # Register a new device (interactive if omitted)
-asc-client devices update [name-or-udid] [--name X] [--status X] [-y]  # Update device (interactive if omitted)
-asc-client certs list [--type X] [--display-name X]               # List signing certificates
-asc-client certs info [serial-or-name]                            # Certificate details (interactive picker if omitted)
-asc-client certs create [--type X] [--csr <file>] [--output X] [-y]  # Create certificate (interactive type picker if omitted)
-asc-client certs revoke [serial-number] [-y]                      # Revoke a certificate (interactive picker if omitted)
-asc-client bundle-ids list [--platform X] [--identifier X]        # List bundle identifiers
-asc-client bundle-ids info [identifier]                           # Bundle ID details with capabilities (interactive picker if omitted)
-asc-client bundle-ids register [--name X] [--identifier X] [--platform X] [-y]  # Register a bundle ID (interactive if omitted)
-asc-client bundle-ids update [identifier] [--name X] [-y]         # Rename a bundle ID (interactive if omitted)
-asc-client bundle-ids delete [identifier] [-y]                    # Delete a bundle ID (interactive picker if omitted)
-asc-client bundle-ids enable-capability [identifier] [--type X] [-y]   # Enable a capability (interactive if omitted)
-asc-client bundle-ids disable-capability [identifier] [-y]        # Disable a capability (interactive picker)
-asc-client profiles list [--name X] [--type X] [--state X]       # List provisioning profiles
-asc-client profiles info [name]                                   # Profile details (interactive picker if omitted)
-asc-client profiles download [name] [--output X]                  # Download profile (interactive picker if omitted)
-asc-client profiles create [--name X] [--type X] [--bundle-id X] [--certificates X] [--devices X] [--output X] [-y]  # Create a profile (interactive if omitted; --certificates all = all of matching family)
-asc-client profiles delete [name] [-y]                            # Delete a profile (interactive picker if omitted)
-asc-client profiles reissue [name] [--all] [--all-invalid] [--to-certs X] [--all-devices] [-y]  # Reissue profiles with latest cert (or specific certs)
-asc-client alias add [name]                                       # Add/update an alias (interactive app picker if name omitted)
-asc-client alias remove [name] [-y]                               # Remove an alias (interactive picker if name omitted)
-asc-client alias list                                             # List all aliases
-asc-client run-workflow [file] [--yes]                            # Run commands from a workflow file
-asc-client rate-limit                                             # Show API rate limit status
-asc-client install-skill [--uninstall]                            # Install/remove Claude Code skill
-asc-client version                                                # Print version number (also: --version, -v)
+asc configure                                              # Interactive setup
+asc apps list                                              # List all apps
+asc apps info <bundle-id>                                  # App details
+asc apps versions <bundle-id>                              # List App Store versions
+asc apps localizations view <bundle-id> [--version X]      # View localizations
+asc apps localizations update <bundle-id> [--locale X]     # Update single locale via flags
+asc apps localizations import <bundle-id> [--file X]       # Bulk update from JSON file
+asc apps localizations export <bundle-id> [--version X]    # Export to JSON file
+asc apps review preflight <bundle-id> [--version X]           # Pre-submission checks
+asc apps review status <bundle-id> [--version X]             # Review submission status
+asc apps create-version <bundle-id> <ver> [--platform X]   # Create new version
+asc apps build attach <bundle-id> [--version X]             # Interactively select and attach a build
+asc apps build attach-latest <bundle-id> [--version X]     # Attach the most recent build
+asc apps build detach <bundle-id> [--version X]            # Remove the attached build
+asc apps phased-release <bundle-id> [--version X]          # View/manage phased release
+asc apps app-info age-rating <bundle-id> [--version X] [--file X]   # View/update age rating
+asc apps routing-coverage <bundle-id> [--file X]           # View/upload routing coverage
+asc apps review submit <bundle-id> [--version X]            # Submit version for App Review
+asc apps review resolve-issues <bundle-id>                 # Mark rejected items as resolved
+asc apps review cancel-submission <bundle-id>              # Cancel an active review submission
+asc apps media upload <bundle-id> [--folder X] [--version X] [--replace]  # Upload screenshots/previews
+asc apps media download <bundle-id> [--folder X] [--version X]            # Download screenshots/previews
+asc apps media verify <bundle-id> [--version X] [--folder X]              # Check media status, retry stuck
+asc apps app-info view <bundle-id>                         # View app info, categories, and localizations
+asc apps app-info view --list-categories                   # List available category IDs
+asc apps app-info update <bundle-id> [--name X] [--subtitle X] [--primary-category X] [-y]  # Update localization fields and/or categories
+asc apps app-info import <bundle-id> [--file X] [--verbose] [-y]  # Bulk update localizations from JSON
+asc apps app-info export <bundle-id> [--output X]          # Export localizations to JSON
+asc apps availability <bundle-id> [--add X] [--remove X]  # View/update territory availability
+asc apps encryption <bundle-id> [--create]                 # View/create encryption declarations
+asc apps eula <bundle-id> [--file X] [--delete]            # View/manage custom EULA
+asc builds list [--bundle-id <id>] [--version X]           # List builds
+asc builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
+asc builds upload [file]                                   # Upload build via altool
+asc builds validate [file]                                 # Validate build via altool
+asc builds await-processing <bundle-id> [--build-version X]  # Wait for build to finish processing
+asc iap list <bundle-id> [--type X] [--state X]            # List in-app purchases
+asc iap info <bundle-id> <product-id>                       # IAP details with localizations
+asc iap promoted <bundle-id>                                # List promoted purchases
+asc sub groups <bundle-id>                                 # List subscription groups with subscriptions
+asc sub list <bundle-id>                                   # Flat list of all subscriptions
+asc sub info <bundle-id> <product-id>                      # Subscription details with localizations
+asc devices list [--name X] [--platform X] [--status X]   # List registered devices
+asc devices info [name-or-udid]                            # Device details (interactive picker if omitted)
+asc devices register [--name X] [--udid X] [--platform X] [-y]  # Register a new device (interactive if omitted)
+asc devices update [name-or-udid] [--name X] [--status X] [-y]  # Update device (interactive if omitted)
+asc certs list [--type X] [--display-name X]               # List signing certificates
+asc certs info [serial-or-name]                            # Certificate details (interactive picker if omitted)
+asc certs create [--type X] [--csr <file>] [--output X] [-y]  # Create certificate (interactive type picker if omitted)
+asc certs revoke [serial-number] [-y]                      # Revoke a certificate (interactive picker if omitted)
+asc bundle-ids list [--platform X] [--identifier X]        # List bundle identifiers
+asc bundle-ids info [identifier]                           # Bundle ID details with capabilities (interactive picker if omitted)
+asc bundle-ids register [--name X] [--identifier X] [--platform X] [-y]  # Register a bundle ID (interactive if omitted)
+asc bundle-ids update [identifier] [--name X] [-y]         # Rename a bundle ID (interactive if omitted)
+asc bundle-ids delete [identifier] [-y]                    # Delete a bundle ID (interactive picker if omitted)
+asc bundle-ids enable-capability [identifier] [--type X] [-y]   # Enable a capability (interactive if omitted)
+asc bundle-ids disable-capability [identifier] [-y]        # Disable a capability (interactive picker)
+asc profiles list [--name X] [--type X] [--state X]       # List provisioning profiles
+asc profiles info [name]                                   # Profile details (interactive picker if omitted)
+asc profiles download [name] [--output X]                  # Download profile (interactive picker if omitted)
+asc profiles create [--name X] [--type X] [--bundle-id X] [--certificates X] [--devices X] [--output X] [-y]  # Create a profile (interactive if omitted; --certificates all = all of matching family)
+asc profiles delete [name] [-y]                            # Delete a profile (interactive picker if omitted)
+asc profiles reissue [name] [--all] [--all-invalid] [--to-certs X] [--all-devices] [-y]  # Reissue profiles with latest cert (or specific certs)
+asc alias add [name]                                       # Add/update an alias (interactive app picker if name omitted)
+asc alias remove [name] [-y]                               # Remove an alias (interactive picker if name omitted)
+asc alias list                                             # List all aliases
+asc run-workflow [file] [--yes]                            # Run commands from a workflow file
+asc rate-limit                                             # Show API rate limit status
+asc install-skill [--uninstall]                            # Install/remove Claude Code skill
+asc version                                                # Print version number (also: --version, -v)
 ```
 
 ## Key Patterns
@@ -162,7 +162,7 @@ asc-client version                                                # Print versio
 4. Use `findApp(bundleID:client:)` to resolve bundle ID to app ID
 5. Use `findVersion(appID:versionString:platform:client:)` to resolve version (nil = prefers editable, prompts if multiple platforms)
 6. Use shared helpers from Formatting.swift: `formatDate()`, `expandPath()`, `formatState()` for enum display, color helpers (`green()`, `red()`, `yellow()`, `bold()`)
-7. Run `asc-client install-completions` to regenerate completions after adding commands
+7. Run `asc install-completions` to regenerate completions after adding commands
 
 ### Subcommand grouping
 `AppsCommand` uses `CommandGroup` (swift-argument-parser 1.7+) to organize subcommands into sections in `--help` output:
@@ -175,7 +175,7 @@ asc-client version                                                # Print versio
 When adding a new subcommand, place it in the appropriate `CommandGroup` or create a new one. Shell completions are alphabetically sorted by zsh — don't try to force custom ordering there.
 
 ### App aliases
-- Aliases map short names to bundle IDs, stored in `~/.asc-client/aliases.json`
+- Aliases map short names to bundle IDs, stored in `~/.asc/aliases.json`
 - `resolveAlias()` in `Aliases.swift` is the single resolution function — if input contains no dots, look up in aliases
 - `findApp()` in `AppsCommand.swift` calls `resolveAlias()` at the top — this covers all app, IAP, subscription, and build commands automatically
 - Alias names must match `^[a-zA-Z0-9_-]+$` — no dots (dots distinguish real bundle IDs from aliases)
@@ -184,19 +184,19 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 ### Version management
 - **No `version:` on `CommandConfiguration`** — intentionally omitted. ArgumentParser leaks a root `--version` flag into every subcommand's completion function, which conflicts with subcommands that define their own `--version` option (e.g. `builds list --version`, `apps review status --version`).
 - Version is stored as `static let appVersion` in `ASCClient.swift`.
-- `asc-client version` subcommand prints just the version number. `--version` and `-v` are intercepted in `main()` before ArgumentParser and produce the same output.
-- `install-completions` stamps `# asc-client vX.Y.Z` into completion scripts (after `#compdef` line for zsh) and `install-skill` stamps `<!-- asc-client vX.Y.Z -->` into the installed skill file.
+- `asc version` subcommand prints just the version number. `--version` and `-v` are intercepted in `main()` before ArgumentParser and produce the same output.
+- `install-completions` stamps `# asc vX.Y.Z` into completion scripts (after `#compdef` line for zsh) and `install-skill` stamps `<!-- asc vX.Y.Z -->` into the installed skill file.
 - `checkForUpdates()` (non-interactive, API commands) and `checkForUpdatesInteractively()` (bare invocation) detect outdated completions and/or skill, offering a single Y/n prompt or NOTE line.
-- Both `install-skill` and the npx installer (`npx asc-client-skill`) fetch `SKILL.md` from GitHub — the skill content is NOT embedded in the binary. `skills/asc-client/SKILL.md` in the repo is the single source of truth.
+- Both `install-skill` and the npx installer (`npx asc-skill`) fetch `SKILL.md` from GitHub — the skill content is NOT embedded in the binary. `skills/asc/SKILL.md` in the repo is the single source of truth.
 
 ### Shell completions (`install-completions`)
 - ArgumentParser's generated completion scripts need post-processing:
   - **`#compdef` must be line 1** in zsh completion files — never prepend content before it or compinit won't recognize the file.
-  - `patchZshHelpCompletions` / `patchBashHelpCompletions` — fix `asc-client help <tab>` to list subcommands (ArgumentParser generates a broken/empty help function).
+  - `patchZshHelpCompletions` / `patchBashHelpCompletions` — fix `asc help <tab>` to list subcommands (ArgumentParser generates a broken/empty help function).
   - `-V` flag removed from all `_describe` calls so zsh sorts completions alphabetically.
 - **Argument-level completions** via ArgumentParser's `completion:` parameter:
   - `.file(extensions:)` — file path completion filtered by extension (e.g. `.json`, `.workflow`, `.ipa`)
-  - `.shellCommand()` — dynamic completions from a shell command (used for alias names from `~/.asc-client/aliases.json`)
+  - `.shellCommand()` — dynamic completions from a shell command (used for alias names from `~/.asc/aliases.json`)
   - Bundle ID arguments use `.shellCommand("grep ...")` to extract alias keys from the aliases JSON file
   - File arguments use `.file(extensions: ["json"])`, `.file(extensions: ["workflow", "txt"])`, etc.
 
@@ -226,7 +226,7 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - `URLError`: handles connectivity issues (no internet, DNS, timeout, connection lost, TLS).
 
 ### Workflow files (used by run-workflow)
-- One command per line, without the `asc-client` prefix
+- One command per line, without the `asc` prefix
 - Lines starting with `#` are comments, blank lines are ignored
 - Quoted strings are respected for arguments with spaces (e.g. `--file "path with spaces.json"`)
 - Without `--yes`: prompts once to confirm the workflow, then individual commands still prompt normally
