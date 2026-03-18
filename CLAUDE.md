@@ -22,7 +22,7 @@ cp .build/release/ascelerate /usr/local/bin/
 ```
 Package.swift                         # SPM manifest (Swift 6.0, macOS 13+)
 Sources/ascelerate/
-  ASCClient.swift                     # @main entry, root AsyncParsableCommand, central error handling
+  Ascelerate.swift                    # @main entry, root AsyncParsableCommand, central error handling
   Config.swift                        # ~/.ascelerate/config.json loader, ConfigError
   ClientFactory.swift                 # Creates authenticated AppStoreConnectClient
   Formatting.swift                    # Shared helpers: Table.print, ANSI colors, formatFieldName/formatState, formatDate, expandPath
@@ -151,9 +151,9 @@ ascelerate alias list                                             # List all ali
 ascelerate run-workflow [file] [--yes]                            # Run commands from a workflow file
 ascelerate rate-limit                                             # Show API rate limit status
 ascelerate install-skill [--uninstall]                            # Install/remove Claude Code skill
-ascelerate screenshot run [-c ascelerate.yml]                     # Capture screenshots from simulators
-ascelerate screenshot init [-o ascelerate.yml]                    # Generate sample config
-ascelerate screenshot create-helper [-o ScreenshotHelper.swift]   # Generate UITest helper file
+ascelerate screenshot                                             # Capture screenshots from simulators
+ascelerate screenshot init                                        # Create ascelerate/screenshot.yml + ScreenshotHelper.swift
+ascelerate screenshot create-helper [-o file]                     # Generate UITest helper file
 ascelerate version                                                # Print version number (also: --version, -v)
 ```
 
@@ -334,46 +334,59 @@ Captures App Store screenshots from iOS/iPadOS simulators. Replaces fastlane sna
 ```
 Sources/ascelerate/
   Screenshot/
-    ScreenshotConfig.swift       # YAML config model (via Yams), AscelerateConfig wrapper
+    ScreenshotConfig.swift       # YAML config model (via Yams), validation
     ScreenshotRunner.swift       # Orchestrator: build → boot simulators → run tests → collect
     ScreenshotTestRunner.swift   # xcodebuild wrapper: build-for-testing + test-without-building
     ScreenshotCollector.swift    # Moves PNGs from per-device cache to output dir
-    SimulatorManager.swift       # xcrun simctl: boot, shutdown, erase, localize, status bar
+    SimulatorManager.swift       # xcrun simctl: boot, shutdown, erase, localize, status bar, dark mode
     ScreenshotShell.swift        # Process wrapper: run (capture), stream (passthrough), runToLog (to file)
     ScreenshotError.swift        # Error types
   Commands/
     ScreenshotCommand.swift      # Subcommands: run, init, create-helper + embedded ScreenshotHelper.swift
 ```
 
-### Config (`ascelerate.yml`)
+### Config (`ascelerate/screenshot.yml`)
+
+Config is decoded directly as `ScreenshotConfig` (no wrapper key). Created by `ascelerate screenshot init` in the `ascelerate/` directory.
 
 ```yaml
-screenshot:
-  project: App.xcodeproj
-  scheme: AppUITests
-  devices:
-    - simulator: iPhone 16 Pro Max
-    - simulator: iPad Pro 13-inch (M4)
-  languages: [en-US, tr-TR]
-  outputDirectory: ./screenshots
-  clearPreviousScreenshots: true
-  eraseSimulator: false
-  localizeSimulator: true
-  overrideStatusBar: true
-  # helperPath: AppUITests/ScreenshotHelper.swift
+# project: App.xcodeproj
+workspace: App.xcworkspace
+scheme: AppUITests
+devices:
+  - simulator: iPhone 16 Pro Max
+  - simulator: iPad Pro 13-inch (M4)
+languages: [en-US, tr-TR]
+outputDirectory: ./screenshots
+clearPreviousScreenshots: true
+eraseSimulator: false
+localizeSimulator: true
+# darkMode: false
+# disableAnimations: false
+# waitAfterBoot: 0
+overrideStatusBar: true
+# statusBarArguments: "--time '9:41' --dataNetwork wifi"
+# configuration: Release
+# testWithoutBuilding: true
+# cleanBuild: false
+# headless: false
+# helperPath: AppUITests/ScreenshotHelper.swift
+# testplan: MyTestPlan
+# numberOfRetries: 0
+# stopAfterFirstError: false
+# reinstallApp: com.example.MyApp
+# xcargs: -resultBundlePath ./results
 ```
-
-Top-level `screenshot:` key namespaces the config — other sections can be added later.
 
 ### Flow
 
-1. `build-for-testing` with `generic/platform=iOS Simulator` (or find existing xctestrun if `testWithoutBuilding`)
+1. `build-for-testing` with `generic/platform=iOS Simulator` and `-configuration` (default Release)
 2. xcodebuild writes to project's actual derived data (custom `-derivedDataPath` is ignored by Xcode workspace settings)
 3. Resolve xctestrun file from `~/Library/Developer/Xcode/DerivedData/{ProjectName}[-hash]/Build/Products/`
-4. For each language: boot all simulators → localize → override status bar → `test-without-building` concurrently per device → collect screenshots
+4. For each language: boot all simulators → wait (`waitAfterBoot`) → set dark mode → localize → override status bar → uninstall app (`reinstallApp`) → `test-without-building` concurrently per device → collect screenshots
 5. Each device gets isolated cache at `~/Library/Caches/tools.ascelerate/{UDID}/`
 6. ScreenshotHelper.swift uses `SIMULATOR_UDID` env var to find its cache directory
-7. Errors skip failing device/language, error logs saved as `{language}/{device}-error.log`
+7. Errors skip failing device/language, error logs saved as `{language}/{device}-error.log` (unless `stopAfterFirstError`)
 8. Summary table printed at end
 
 ### Key decisions
@@ -383,13 +396,17 @@ Top-level `screenshot:` key namespaces the config — other sections can be adde
 - Test output goes to log files (not stdout) to prevent interleaved output from concurrent devices
 - Helper version tracked via `// ScreenshotHelperVersion [X.Y]` comment in generated file
 - `clearPreviousScreenshots` only clears per-language after all devices succeed
+- `numberOfRetries` maps to `-retry-tests-on-failure -test-iterations N+1`
+- `testplan` and `xcargs` are passed to both build and test phases
+- `disableAnimations` passes `-ASC_DISABLE_ANIMATIONS YES` as a launch argument; app must call `disableAnimationsIfNeeded()` to act on it
+- SIGINT handler (via `sigaction`) forwards Ctrl-C to child xcodebuild processes
 
 ### Commands
 
 ```
-ascelerate screenshot run [-c ascelerate.yml]  # Capture screenshots
-ascelerate screenshot init [-o ascelerate.yml] # Generate sample config
-ascelerate screenshot create-helper [-o file]  # Generate ScreenshotHelper.swift
+ascelerate screenshot                         # Capture screenshots (uses ascelerate/screenshot.yml)
+ascelerate screenshot init                    # Create ascelerate/screenshot.yml + ScreenshotHelper.swift
+ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift (default: ascelerate/)
 ```
 
 ## Not Yet Implemented
