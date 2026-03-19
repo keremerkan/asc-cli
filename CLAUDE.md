@@ -97,7 +97,9 @@ ascelerate apps build attach <bundle-id> [--version X]             # Interactive
 ascelerate apps build attach-latest <bundle-id> [--version X]     # Attach the most recent build
 ascelerate apps build detach <bundle-id> [--version X]            # Remove the attached build
 ascelerate apps phased-release <bundle-id> [--version X]          # View/manage phased release
-ascelerate apps app-info age-rating <bundle-id> [--version X] [--file X]   # View/update age rating
+ascelerate apps app-info age-rating <bundle-id>                            # View age rating
+ascelerate apps app-info age-rating export <bundle-id>                     # Export age rating to JSON
+ascelerate apps app-info age-rating import <bundle-id> [--file X]          # Update age rating from JSON
 ascelerate apps routing-coverage <bundle-id> [--file X]           # View/upload routing coverage
 ascelerate apps review submit <bundle-id> [--version X]            # Submit version for App Review
 ascelerate apps review resolve-issues <bundle-id>                 # Mark rejected items as resolved
@@ -172,7 +174,7 @@ ascelerate version                                                # Print versio
 `AppsCommand` uses `CommandGroup` (swift-argument-parser 1.7+) to organize subcommands into sections in `--help` output:
 - **ungrouped** (`subcommands:`): list, info, versions — general browse commands
 - **Version**: create-version, build (attach, attach-latest, detach), phased-release, routing-coverage
-- **Info & Content**: app-info (view, update, import, export, age-rating), localizations (view, update, import, export), media (upload, download, verify)
+- **Info & Content**: app-info (view, update, import, export, age-rating (view, export, import)), localizations (view, update, import, export), media (upload, download, verify)
 - **Configuration**: availability, encryption, eula
 - **Review**: review (preflight, status, submit, resolve-issues, cancel-submission)
 
