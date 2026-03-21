@@ -104,9 +104,9 @@ ascelerate apps routing-coverage <bundle-id> [--file X]           # View/upload 
 ascelerate apps review submit <bundle-id> [--version X]            # Submit version for App Review
 ascelerate apps review resolve-issues <bundle-id>                 # Mark rejected items as resolved
 ascelerate apps review cancel-submission <bundle-id>              # Cancel an active review submission
-ascelerate apps media upload <bundle-id> [--folder X] [--version X] [--replace]  # Upload screenshots/previews
-ascelerate apps media download <bundle-id> [--folder X] [--version X]            # Download screenshots/previews
-ascelerate apps media verify <bundle-id> [--version X] [--folder X]              # Check media status, retry stuck
+ascelerate apps media upload <bundle-id> [folder] [--version X] [--replace]  # Upload screenshots/previews
+ascelerate apps media download <bundle-id> [--folder X] [--version X]        # Download screenshots/previews
+ascelerate apps media verify <bundle-id> [--version X] [folder]              # Check media status, retry stuck
 ascelerate apps app-info view <bundle-id>                         # View app info, categories, and localizations
 ascelerate apps app-info view --list-categories                   # List available category IDs
 ascelerate apps app-info update <bundle-id> [--name X] [--subtitle X] [--primary-category X] [-y]  # Update localization fields and/or categories
