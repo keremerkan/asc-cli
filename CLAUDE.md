@@ -398,7 +398,7 @@ overrideStatusBar: true
 - Test output goes to log files (not stdout) to prevent interleaved output from concurrent devices
 - Helper version tracked via `// ScreenshotHelperVersion [X.Y]` comment in generated file
 - `clearPreviousScreenshots` only clears per-language after all devices succeed
-- `numberOfRetries` maps to `-retry-tests-on-failure -test-iterations N+1`
+- `numberOfRetries` — retries failed languages by erasing the failed simulators, re-localizing, rebooting, and rerunning tests. Works around simulator localization bugs where translated labels aren't found. Only failed devices are retried.
 - `testplan` and `xcargs` are passed to both build and test phases
 - `disableAnimations` passes `-ASC_DISABLE_ANIMATIONS YES` as a launch argument; app must call `disableAnimationsIfNeeded()` to act on it
 - SIGINT handler (via `sigaction`) forwards Ctrl-C to child xcodebuild processes
