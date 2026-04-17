@@ -455,7 +455,7 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 asc-swift exposes the full App Store Connect surface (~1076 generated path files). ascelerate currently wraps a fraction of it. Major gaps:
 
 ### Partially covered
-- **Monetization** — IAP/sub have CRUD + localizations + base pricing. Still missing: per-IAP/sub territory availability, app-level subscription grace period, IAP/sub introductory offers, promotional offers, offer codes (custom + one-time-use), win-back offers, IAP/sub images, App Review screenshots, IAP hosted content, subscription group submissions.
+- **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (including per-territory overrides for IAPs and equalize fan-out for subs with increase/decrease safety). Still to finish: IAP/sub introductory offers, promotional offers, offer codes (custom + one-time-use), win-back offers, per-IAP/sub territory availability, app-level subscription grace period, IAP/sub images, App Review screenshots, IAP hosted content, subscription group submissions (distinct from per-sub submit).
 - **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app events, app clips.
 
 ### Missing entirely
