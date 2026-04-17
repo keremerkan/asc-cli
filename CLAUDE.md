@@ -90,7 +90,7 @@ ascelerate apps localizations view <bundle-id> [--version X]      # View localiz
 ascelerate apps localizations update <bundle-id> [--locale X]     # Update single locale via flags
 ascelerate apps localizations import <bundle-id> [--file X]       # Bulk update from JSON file
 ascelerate apps localizations export <bundle-id> [--version X]    # Export to JSON file
-ascelerate apps review preflight <bundle-id> [--version X]           # Pre-submission checks
+ascelerate apps review preflight <bundle-id> [--version X]           # Pre-submission checks (includes IAP/sub state and pricing)
 ascelerate apps review status <bundle-id> [--version X]             # Review submission status
 ascelerate apps create-version <bundle-id> <ver> [--platform X]   # Create new version
 ascelerate apps build attach <bundle-id> [--version X]             # Interactively select and attach a build
@@ -121,11 +121,39 @@ ascelerate builds upload [file]                                   # Upload build
 ascelerate builds validate [file]                                 # Validate build via altool
 ascelerate builds await-processing <bundle-id> [--build-version X]  # Wait for build to finish processing
 ascelerate iap list <bundle-id> [--type X] [--state X]            # List in-app purchases
-ascelerate iap info <bundle-id> <product-id>                       # IAP details with localizations
+ascelerate iap info <bundle-id> <product-id>                       # IAP details, localizations, missing-pricing warning
 ascelerate iap promoted <bundle-id>                                # List promoted purchases
+ascelerate iap create <bundle-id> [--type X] [--product-id X] [--name X] [--review-note X] [--family-sharable] [-y]  # Create IAP
+ascelerate iap update <bundle-id> <product-id> [--name X] [--review-note X] [--family-sharable true|false] [-y]  # Update IAP
+ascelerate iap delete <bundle-id> <product-id> [-y]               # Delete IAP
+ascelerate iap submit <bundle-id> <product-id> [-y]               # Submit IAP for review
+ascelerate iap localizations view <bundle-id> <product-id>        # View IAP localizations
+ascelerate iap localizations export <bundle-id> <product-id> [--output X]  # Export IAP localizations to JSON
+ascelerate iap localizations import <bundle-id> <product-id> [--file X] [--verbose] [-y]  # Import IAP localizations from JSON
+ascelerate iap pricing show <bundle-id> <product-id>              # Show current price schedule (warns if missing)
+ascelerate iap pricing tiers <bundle-id> <product-id> [--territory USA]  # List available price tiers for a territory
+ascelerate iap pricing set <bundle-id> <product-id> --price 4.99 [--base-region USA] [--start-date YYYY-MM-DD] [--remove-all-overrides] [-y]  # Set base price; preserves overrides (interactive menu to drop)
+ascelerate iap pricing override <bundle-id> <product-id> --price 5.99 --territory FRA [--start-date YYYY-MM-DD] [-y]  # Add/update per-territory manual price override
+ascelerate iap pricing remove <bundle-id> <product-id> --territory FRA [-y]  # Drop a per-territory override (revert to auto-equalize)
 ascelerate sub groups <bundle-id>                                 # List subscription groups with subscriptions
 ascelerate sub list <bundle-id>                                   # Flat list of all subscriptions
-ascelerate sub info <bundle-id> <product-id>                      # Subscription details with localizations
+ascelerate sub info <bundle-id> <product-id>                      # Subscription details, localizations, missing-prices warning
+ascelerate sub create <bundle-id> [--product-id X] [--name X] [--period X] [--group-level N] [--review-note X] [--family-sharable] [-y]  # Create subscription
+ascelerate sub update <bundle-id> <product-id> [--name X] [--review-note X] [--group-level N] [--family-sharable true|false] [-y]  # Update subscription
+ascelerate sub delete <bundle-id> <product-id> [-y]               # Delete subscription
+ascelerate sub submit <bundle-id> <product-id> [-y]               # Submit subscription for review
+ascelerate sub create-group <bundle-id> [--name X] [-y]           # Create subscription group
+ascelerate sub update-group <bundle-id> [--name X] [-y]           # Update subscription group
+ascelerate sub delete-group <bundle-id> [-y]                      # Delete subscription group
+ascelerate sub localizations view <bundle-id> <product-id>        # View subscription localizations
+ascelerate sub localizations export <bundle-id> <product-id> [--output X]  # Export subscription localizations to JSON
+ascelerate sub localizations import <bundle-id> <product-id> [--file X] [--verbose] [-y]  # Import subscription localizations from JSON
+ascelerate sub group-localizations view <bundle-id>               # View group localizations
+ascelerate sub group-localizations export <bundle-id> [--output X]  # Export group localizations to JSON
+ascelerate sub group-localizations import <bundle-id> [--file X] [--verbose] [-y]  # Import group localizations from JSON
+ascelerate sub pricing show <bundle-id> <product-id>              # Show current prices per territory (warns if none)
+ascelerate sub pricing tiers <bundle-id> <product-id> [--territory USA]  # List available price tiers for a territory
+ascelerate sub pricing set <bundle-id> <product-id> --price 4.99 [--territory USA] [--start-date YYYY-MM-DD] [--preserve-current | --no-preserve-current] [--equalize-all-territories] [--confirm-decrease] [-y]  # Set price for one territory or fan out to all (equalized). Increases require --preserve-current/--no-preserve-current; decreases prompt interactively or require --confirm-decrease in -y mode.
 ascelerate devices list [--name X] [--platform X] [--status X]   # List registered devices
 ascelerate devices info [name-or-udid]                            # Device details (interactive picker if omitted)
 ascelerate devices register [--name X] [--udid X] [--platform X] [-y]  # Register a new device (interactive if omitted)
@@ -267,6 +295,17 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
 - `create-version` `--release-type` is optional; omitting it uses the previous version's setting
 - **`bundleIDCapabilities` sub-resource rejects `limit`** — despite the generated code accepting `limit: Int?`, the API returns an error if `limit` is passed. Use `.get()` with no arguments.
 - Filter parameters vary per endpoint — check the generated PathsV1*.swift files for exact signatures
+- **IAP price schedule fetches need fields[] AND include[] for relationships to populate** — Two related quirks discovered when wiring `iap pricing`:
+  - `Resources.v2.inAppPurchases.id(iapID).iapPriceSchedule.get(...)` returns the schedule but `relationships.baseTerritory.data.id` is nil unless you pass `fieldsInAppPurchasePriceSchedules: [.baseTerritory, .manualPrices]` AND `include: [.baseTerritory]`. Both are required.
+  - `Resources.v1.inAppPurchasePriceSchedules.id(scheduleID).manualPrices.get(...)` returns the price records but each record's `relationships.territory.data.id` and `relationships.inAppPurchasePricePoint.data.id` are nil unless you pass `include: [.inAppPurchasePricePoint, .territory]`. Without it you get just resource links.
+  - Bottom line: for relationship `data` IDs, always pass both `include` and (where required) the matching `fields[]`. The schedule POST replaces the whole schedule wholesale, so you need these IDs to round-trip existing manualPrices through a read-modify-write.
+- **IAP schedule POST is wholesale, but additive in practice** — `POST /v1/inAppPurchasePriceSchedules` fully replaces any existing schedule. To preserve manual overrides across a base-region change or any edit, fetch the existing schedule first and include all entries you want kept in the new payload. Apple's web UI's "all manual prices will be deleted" warning is UI-conservatism — the API itself preserves whatever you send. The `iap pricing set/override/remove` commands all do this read-modify-write.
+- **Subscription pricing is per-territory** — there's no `manualPrices`/`automaticPrices` split like IAPs have. Every entry in `subscription.prices` is an explicit `SubscriptionPrice` you POST. The `--equalize-all-territories` flag on `sub pricing set` mimics the web UI's auto-fill by walking `subscriptionPricePoints/{id}/equalizations` and POSTing one record per territory.
+- **`isPreserveCurrentPrice` keeps existing subscribers on their old price** — On `SubscriptionPrice` POST, set `isPreserveCurrentPrice: true` to grandfather existing subscribers when raising prices. Apple's behavior:
+  - **Decrease** (new < current): existing subscribers automatically get the lower price; `isPreserveCurrentPrice` is meaningless. `sub pricing set` warns and prompts interactively. Under `-y`, requires `--confirm-decrease` to acknowledge the revenue impact — plain `-y` is not enough.
+  - **Increase** (new > current): the dev MUST decide. `--preserve-current` keeps existing subs at old price; `--no-preserve-current` pushes new price after Apple's notification period. The `sub pricing set` command errors if neither flag is passed for any increase (single territory or any territory in `--equalize-all-territories`).
+  - **New territory** (no current price): no existing subs to consider; the flag is unnecessary.
+  - **Unchanged**: `sub pricing set` skips silently. In equalize mode, only changed territories are POSTed.
 
 ### Localization JSON format (used by export/update-localizations)
 ```json
@@ -413,12 +452,19 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 
 ## Not Yet Implemented
 
-API endpoints available but not yet added (43 app sub-resources + 5 top-level resources):
-- **TestFlight**: beta groups, beta testers, pre-release versions, beta app localizations
-- **Monetization**: price points, in-app purchase management (create/update/delete), subscription management (create/update/delete)
-- **Feedback**: customer reviews, review summarizations
-- **Analytics**: analytics reports, performance power metrics
-- **Configuration**: app events, app clips, custom product pages, A/B experiments
+asc-swift exposes the full App Store Connect surface (~1076 generated path files). ascelerate currently wraps a fraction of it. Major gaps:
+
+### Partially covered
+- **Monetization** — IAP/sub have CRUD + localizations + base pricing. Still missing: per-IAP/sub territory availability, app-level subscription grace period, IAP/sub introductory offers, promotional offers, offer codes (custom + one-time-use), win-back offers, IAP/sub images, App Review screenshots, IAP hosted content, subscription group submissions.
+- **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app events, app clips.
+
+### Missing entirely
+- **TestFlight** — beta groups, beta testers, tester invitations, beta app/build localizations, beta app review submissions/details, crash logs, feedback submissions, recruitment criteria.
+- **Game Center** (~40 resources) — achievements, leaderboards, leaderboard sets, challenges, matchmaking, groups, details, enabled versions.
+- **Customer feedback** — customer reviews, review responses.
+- **Analytics** — analytics reports, report requests/instances/segments.
+- **A/B experiments** — App Store version experiments.
+- **Niche** — accessibility declarations, background assets, alternative distribution, marketplace webhooks, CI/CD workflows (Xcode Cloud), source control integration, finance/sales reports, user management, Android-to-iOS app mapping.
 
 ## Release build note
 
