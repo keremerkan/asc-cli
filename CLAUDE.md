@@ -115,6 +115,7 @@ ascelerate apps app-info export <bundle-id> [--output X]          # Export local
 ascelerate apps availability <bundle-id> [--add X] [--remove X]  # View/update territory availability
 ascelerate apps encryption <bundle-id> [--create]                 # View/create encryption declarations
 ascelerate apps eula <bundle-id> [--file X] [--delete]            # View/manage custom EULA
+ascelerate apps subscription-grace-period <bundle-id> [--opt-in true|false] [--sandbox-opt-in true|false] [--duration X] [--renewal-type X] [-y]  # View/update app-level subscription grace period
 ascelerate builds list [--bundle-id <id>] [--version X]           # List builds
 ascelerate builds archive [--workspace X] [--scheme X] [--output X]  # Archive Xcode project
 ascelerate builds upload [file]                                   # Upload build via altool
@@ -132,9 +133,23 @@ ascelerate iap localizations export <bundle-id> <product-id> [--output X]  # Exp
 ascelerate iap localizations import <bundle-id> <product-id> [--file X] [--verbose] [-y]  # Import IAP localizations from JSON
 ascelerate iap pricing show <bundle-id> <product-id>              # Show current price schedule (warns if missing)
 ascelerate iap pricing tiers <bundle-id> <product-id> [--territory USA]  # List available price tiers for a territory
-ascelerate iap pricing set <bundle-id> <product-id> --price 4.99 [--base-region USA] [--start-date YYYY-MM-DD] [--remove-all-overrides] [-y]  # Set base price; preserves overrides (interactive menu to drop)
+ascelerate iap pricing set <bundle-id> <product-id> --price 4.99 [--base-territory USA] [--start-date YYYY-MM-DD] [--remove-all-overrides] [-y]  # Set base price; preserves overrides (interactive menu to drop)
 ascelerate iap pricing override <bundle-id> <product-id> --price 5.99 --territory FRA [--start-date YYYY-MM-DD] [-y]  # Add/update per-territory manual price override
 ascelerate iap pricing remove <bundle-id> <product-id> --territory FRA [-y]  # Drop a per-territory override (revert to auto-equalize)
+ascelerate iap availability <bundle-id> <product-id> [--add X] [--remove X] [--available-in-new-territories true|false] [-y]  # View/update per-IAP territory availability
+ascelerate iap offer-code list <bundle-id> <product-id>           # List offer codes for an IAP
+ascelerate iap offer-code info <bundle-id> <product-id> <offer-code-id>  # Show details + price/code counts
+ascelerate iap offer-code create <bundle-id> <product-id> --name X --eligibility N,A,C --price 4.99 [--territory USA] [--equalize-all-territories] [-y]  # Create offer code with single-territory or fan-out prices
+ascelerate iap offer-code toggle <bundle-id> <product-id> <offer-code-id> --active true|false [-y]  # Activate / deactivate
+ascelerate iap offer-code gen-codes <bundle-id> <product-id> <offer-code-id> --count N --expires YYYY-MM-DD [--environment PRODUCTION|SANDBOX] [-y]  # Generate one-time-use code batch
+ascelerate iap offer-code add-custom-codes <bundle-id> <product-id> <offer-code-id> --code X --count N [--expires YYYY-MM-DD] [-y]  # Add a custom redeem code
+ascelerate iap offer-code view-codes <one-time-use-batch-id> [--output X]  # Fetch actual code values (async; may need retry)
+ascelerate iap images list <bundle-id> <product-id>               # List uploaded promotional images
+ascelerate iap images upload <bundle-id> <product-id> <file> [-y] # Upload image (3-step reserve/PUT/commit)
+ascelerate iap images delete <bundle-id> <product-id> <image-id> [-y]  # Delete an image
+ascelerate iap review-screenshot view <bundle-id> <product-id>    # Show current App Review screenshot
+ascelerate iap review-screenshot upload <bundle-id> <product-id> <file> [-y]  # Upload (replaces existing)
+ascelerate iap review-screenshot delete <bundle-id> <product-id> [-y]  # Delete
 ascelerate sub groups <bundle-id>                                 # List subscription groups with subscriptions
 ascelerate sub list <bundle-id>                                   # Flat list of all subscriptions
 ascelerate sub info <bundle-id> <product-id>                      # Subscription details, localizations, missing-prices warning
@@ -154,6 +169,30 @@ ascelerate sub group-localizations import <bundle-id> [--file X] [--verbose] [-y
 ascelerate sub pricing show <bundle-id> <product-id>              # Show current prices per territory (warns if none)
 ascelerate sub pricing tiers <bundle-id> <product-id> [--territory USA]  # List available price tiers for a territory
 ascelerate sub pricing set <bundle-id> <product-id> --price 4.99 [--territory USA] [--start-date YYYY-MM-DD] [--preserve-current | --no-preserve-current] [--equalize-all-territories] [--confirm-decrease] [-y]  # Set price for one territory or fan out to all (equalized). Increases require --preserve-current/--no-preserve-current; decreases prompt interactively or require --confirm-decrease in -y mode.
+ascelerate sub availability <bundle-id> <product-id> [--add X] [--remove X] [--available-in-new-territories true|false] [-y]  # View/update per-subscription territory availability
+ascelerate sub intro-offer list <bundle-id> <product-id>          # List intro offers (free trials, intro discounts)
+ascelerate sub intro-offer create <bundle-id> <product-id> --mode FREE_TRIAL|PAY_AS_YOU_GO|PAY_UP_FRONT --duration X --periods N [--territory USA] [--price 4.99] [--start-date Y] [--end-date Y] [-y]  # Create intro offer
+ascelerate sub intro-offer update <bundle-id> <product-id> <offer-id> --end-date Y [-y]  # Update intro offer end date
+ascelerate sub intro-offer delete <bundle-id> <product-id> <offer-id> [-y]  # Delete intro offer
+ascelerate sub offer-code list <bundle-id> <product-id>           # List offer codes for a subscription
+ascelerate sub offer-code info <bundle-id> <product-id> <offer-code-id>  # Show details + price/code counts
+ascelerate sub offer-code create <bundle-id> <product-id> --name X --eligibility N,E,X --offer-eligibility STACK_WITH_INTRO_OFFERS|REPLACE_INTRO_OFFERS --mode FREE_TRIAL|PAY_AS_YOU_GO|PAY_UP_FRONT --duration X --periods N [--auto-renew | --no-auto-renew] --price 4.99 [--territory USA] [--equalize-all-territories] [-y]  # Create offer code
+ascelerate sub offer-code toggle <bundle-id> <product-id> <offer-code-id> --active true|false [-y]  # Activate / deactivate
+ascelerate sub offer-code gen-codes <bundle-id> <product-id> <offer-code-id> --count N --expires YYYY-MM-DD [--environment PRODUCTION|SANDBOX] [-y]  # Generate one-time-use code batch
+ascelerate sub offer-code add-custom-codes <bundle-id> <product-id> <offer-code-id> --code X --count N [--expires YYYY-MM-DD] [-y]  # Add a custom redeem code
+ascelerate sub offer-code view-codes <one-time-use-batch-id> [--output X]  # Fetch actual code values (async; may need retry)
+ascelerate sub promo-offer list <bundle-id> <product-id>          # List promotional offers (server-signed)
+ascelerate sub promo-offer info <bundle-id> <product-id> <offer-id>  # Show details
+ascelerate sub promo-offer create <bundle-id> <product-id> --name X --code X --mode X --duration X --periods N --price 4.99 [--territory USA] [--equalize-all-territories] [-y]  # Create
+ascelerate sub promo-offer update <bundle-id> <product-id> <offer-id> --price 4.99 [--territory USA] [--equalize-all-territories] [-y]  # Update prices only
+ascelerate sub promo-offer delete <bundle-id> <product-id> <offer-id> [-y]  # Delete
+ascelerate sub submit-group <bundle-id> [-y]                      # Submit a subscription group for review (mirror of `sub submit`)
+ascelerate sub images list <bundle-id> <product-id>               # List uploaded promotional images
+ascelerate sub images upload <bundle-id> <product-id> <file> [-y] # Upload image (3-step reserve/PUT/commit)
+ascelerate sub images delete <bundle-id> <product-id> <image-id> [-y]  # Delete an image
+ascelerate sub review-screenshot view <bundle-id> <product-id>    # Show current App Review screenshot
+ascelerate sub review-screenshot upload <bundle-id> <product-id> <file> [-y]  # Upload (replaces existing)
+ascelerate sub review-screenshot delete <bundle-id> <product-id> [-y]  # Delete
 ascelerate devices list [--name X] [--platform X] [--status X]   # List registered devices
 ascelerate devices info [name-or-udid]                            # Device details (interactive picker if omitted)
 ascelerate devices register [--name X] [--udid X] [--platform X] [-y]  # Register a new device (interactive if omitted)
@@ -299,7 +338,7 @@ When adding a new subcommand, place it in the appropriate `CommandGroup` or crea
   - `Resources.v2.inAppPurchases.id(iapID).iapPriceSchedule.get(...)` returns the schedule but `relationships.baseTerritory.data.id` is nil unless you pass `fieldsInAppPurchasePriceSchedules: [.baseTerritory, .manualPrices]` AND `include: [.baseTerritory]`. Both are required.
   - `Resources.v1.inAppPurchasePriceSchedules.id(scheduleID).manualPrices.get(...)` returns the price records but each record's `relationships.territory.data.id` and `relationships.inAppPurchasePricePoint.data.id` are nil unless you pass `include: [.inAppPurchasePricePoint, .territory]`. Without it you get just resource links.
   - Bottom line: for relationship `data` IDs, always pass both `include` and (where required) the matching `fields[]`. The schedule POST replaces the whole schedule wholesale, so you need these IDs to round-trip existing manualPrices through a read-modify-write.
-- **IAP schedule POST is wholesale, but additive in practice** — `POST /v1/inAppPurchasePriceSchedules` fully replaces any existing schedule. To preserve manual overrides across a base-region change or any edit, fetch the existing schedule first and include all entries you want kept in the new payload. Apple's web UI's "all manual prices will be deleted" warning is UI-conservatism — the API itself preserves whatever you send. The `iap pricing set/override/remove` commands all do this read-modify-write.
+- **IAP schedule POST is wholesale, but additive in practice** — `POST /v1/inAppPurchasePriceSchedules` fully replaces any existing schedule. To preserve manual overrides across a base-territory change or any edit, fetch the existing schedule first and include all entries you want kept in the new payload. Apple's web UI's "all manual prices will be deleted" warning is UI-conservatism — the API itself preserves whatever you send. The `iap pricing set/override/remove` commands all do this read-modify-write.
 - **Subscription pricing is per-territory** — there's no `manualPrices`/`automaticPrices` split like IAPs have. Every entry in `subscription.prices` is an explicit `SubscriptionPrice` you POST. The `--equalize-all-territories` flag on `sub pricing set` mimics the web UI's auto-fill by walking `subscriptionPricePoints/{id}/equalizations` and POSTing one record per territory.
 - **`isPreserveCurrentPrice` keeps existing subscribers on their old price** — On `SubscriptionPrice` POST, set `isPreserveCurrentPrice: true` to grandfather existing subscribers when raising prices. Apple's behavior:
   - **Decrease** (new < current): existing subscribers automatically get the lower price; `isPreserveCurrentPrice` is meaningless. `sub pricing set` warns and prompts interactively. Under `-y`, requires `--confirm-decrease` to acknowledge the revenue impact — plain `-y` is not enough.
@@ -455,7 +494,7 @@ ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift 
 asc-swift exposes the full App Store Connect surface (~1076 generated path files). ascelerate currently wraps a fraction of it. Major gaps:
 
 ### Partially covered
-- **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (including per-territory overrides for IAPs and equalize fan-out for subs with increase/decrease safety). Still to finish: IAP/sub introductory offers, promotional offers, offer codes (custom + one-time-use), win-back offers, per-IAP/sub territory availability, app-level subscription grace period, IAP/sub images, App Review screenshots, IAP hosted content, subscription group submissions (distinct from per-sub submit).
+- **Monetization** — IAP and subscriptions have CRUD + localizations + pricing (per-territory overrides for IAPs, equalize fan-out for subs with increase/decrease safety) + per-product availability + app-level grace period + subscription introductory offers + IAP/sub offer codes (with one-time-use + custom code generation) + subscription promotional offers + group submissions + IAP/sub promotional images + App Review screenshots. Remaining: **win-back offers** (blocked: asc-swift's `WinBackOfferPriceInlineCreate` doesn't expose territory/pricePoint relationships — can't reach the API correctly until the generator is updated), IAP hosted content (read-only via API; low value).
 - **App metadata** — no commands for app tags, app categories CRUD, custom product pages, app events, app clips.
 
 ### Missing entirely
