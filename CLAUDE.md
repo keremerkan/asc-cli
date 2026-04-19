@@ -480,6 +480,7 @@ overrideStatusBar: true
 - `testplan` and `xcargs` are passed to both build and test phases
 - `disableAnimations` passes `-ASC_DISABLE_ANIMATIONS YES` as a launch argument; app must call `disableAnimationsIfNeeded()` to act on it
 - SIGINT handler (via `sigaction`) forwards Ctrl-C to child xcodebuild processes
+- **Helper uses `app.screenshot()`, not `XCUIScreen.main.screenshot()`.** XCUIScreen captures the simulator framebuffer via the render server, so if the target app has terminated at the moment of capture (seen intermittently on iPad when the last test tap triggers a locale-dependent crash in the app), the call silently returns a home-screen PNG and the test "passes" with a bad screenshot. `app.screenshot()` RPCs into the target process directly — if the process is gone, it throws `Lost connection to the application (pid N)`, XCTest marks the test failed, and `numberOfRetries` retries the device+language automatically (usually succeeds on retry since the crash is intermittent). Do not switch back to XCUIScreen without a replacement detection mechanism.
 
 ### Commands
 
