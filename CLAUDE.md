@@ -220,7 +220,7 @@ ascelerate alias list                                             # List all ali
 ascelerate run-workflow [file] [--yes]                            # Run commands from a workflow file
 ascelerate rate-limit                                             # Show API rate limit status
 ascelerate install-skill [--uninstall]                            # Install/remove Claude Code skill
-ascelerate screenshot                                             # Capture screenshots from simulators
+ascelerate screenshot [--languages en-US,tr-TR]                   # Capture screenshots (optional language subset override)
 ascelerate screenshot init                                        # Create ascelerate/screenshot.yml + ScreenshotHelper.swift
 ascelerate screenshot create-helper [-o file]                     # Generate UITest helper file
 ascelerate version                                                # Print version number (also: --version, -v)
@@ -484,7 +484,7 @@ overrideStatusBar: true
 ### Commands
 
 ```
-ascelerate screenshot                         # Capture screenshots (uses ascelerate/screenshot.yml)
+ascelerate screenshot [-l en-US,tr-TR]        # Capture screenshots (optionally filter to a subset of configured languages)
 ascelerate screenshot init                    # Create ascelerate/screenshot.yml + ScreenshotHelper.swift
 ascelerate screenshot create-helper [-o file] # Generate ScreenshotHelper.swift (default: ascelerate/)
 ```
